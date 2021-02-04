@@ -5,7 +5,8 @@
 # 3rd Party Imports
 import yaml
 import os
-from prompt_toolkit import prompt
+from datetime import date, datetime
+from progress.bar import ChargingBar
 # User Imports
 
 """
@@ -15,7 +16,8 @@ TODO :
 """
 
 # * Code
-tasksFilePath = "tasks.yaml"
+tasksFilePath = "/home/namv/Documents/Personal_Projects/T-T/tasks.yaml"
+updateDateFilePath = "/home/namv/Documents/Personal_Projects/T-T/update_date.txt"
 
 class TaskViewer:
     """
@@ -26,8 +28,18 @@ class TaskViewer:
 
     def run(self):
         quitFlag = False
-
         firstFlag = True
+
+        today = date.today()
+        th = TaskHandler()
+        mostRecentUpdateDateStr = th.read_date()
+        mostRecentUpdateDate = datetime.strptime(mostRecentUpdateDateStr, "%d/%m/%Y").date()
+
+        if mostRecentUpdateDate < today:
+            # new day == reset database
+            th.reset_database()
+
+        th.update_date()
 
         self.clear_view()
         while not quitFlag:
@@ -38,48 +50,71 @@ class TaskViewer:
             userInput = input("cmd (a/r/t/q) : ")
             userInputChar = userInput[0]
 
-            if userInputChar == "q":
+            if userInputChar == "q" and len(userInput) == 1:
                 return
             
-            elif userInputChar == "a":
+            elif userInputChar == "a" and len(userInput) == 1:
                 taskText = input("task : ")
                 th = TaskHandler()
-                newID = th.len_tasks() + 1
+                newID = th.get_max_id() + 1
                 task = Task(newID, taskText)
                 th.add_task(task)
 
                 self.reset_view()
 
             elif userInputChar == "t":
-                taskID = self.get_id(userInput)
-                th = TaskHandler()
+                try:
+                    taskID = self.get_id(userInput)
+                    th = TaskHandler()
 
-                if taskID > th.len_tasks() or taskID < 1:
-                    print("invalid id")
+                    if taskID > th.get_max_id() or taskID < 1:
+                        print("invalid id")
 
-                else:
-                    th.toggle_task_status(taskID)
+                    else:
+                        th.toggle_task_status(taskID)
 
-                self.reset_view()
+                except (TypeError, ValueError):
+                    print("invalid cmd")
+
+                finally:
+                    self.reset_view()
 
             elif userInputChar == "r":
-                taskID = self.get_id(userInput)
-                th = TaskHandler()
+                try:
+                    taskID = self.get_id(userInput)
+                    th = TaskHandler()
 
-                if taskID > th.len_tasks() or taskID < 1:
-                    print("invalid id")
+                    if taskID > th.get_max_id() or taskID < 1:
+                        print("invalid id")
 
-                else:
-                    th.remove_task(taskID)
+                    else:
+                        th.remove_task(taskID)
 
-                # self.reset_view()
+                except (TypeError, ValueError):
+                    print("invalid cmd")
+
+                finally:
+                    self.reset_view()
+
+            else:
+                self.reset_view()
 
     def show(self, showFlag):
         if showFlag:
             th = TaskHandler()
             tasksData = th.read_tasks()
+
+            bar = ChargingBar('', max=len(tasksData))
+            for i in range(th.get_num_tasks_done()):
+                bar.next()
+
+            print("")
+            print("")
+
             for taskDataInfo in tasksData:
                 print(th.task_print_format(taskDataInfo))
+
+            print("")
 
     def clear_view(self):
         os.system('cls' if os.name == 'nt' else 'clear')
@@ -116,6 +151,19 @@ class TaskHandler:
     """
     def __init__(self):
         pass
+
+    def update_date(self):
+        today = date.today()
+        dt = today.strftime("%d/%m/%Y")
+
+        with open(updateDateFilePath, 'w') as f:
+            f.write(dt)
+
+    def read_date(self):
+        with open(updateDateFilePath, 'r') as f:
+            dateStr = f.read()
+
+            return dateStr
     
     def add_task(self, task: Task): 
         """
@@ -145,14 +193,33 @@ class TaskHandler:
 
             return data
 
-    def len_tasks(self): 
+    def get_max_id(self): 
         """
         read all the tasks
         """
         with open(tasksFilePath, 'r') as f:
             data = yaml.load(f, Loader=yaml.FullLoader)
 
-            return len(data)
+            maxID = 0
+            for taskData in data:
+                if int(taskData["id"]) > maxID:
+                    maxID = int(taskData["id"])
+
+            return maxID
+
+    def get_num_tasks_done(self): 
+        """
+        read all the tasks
+        """
+        with open(tasksFilePath, 'r') as f:
+            data = yaml.load(f, Loader=yaml.FullLoader)
+
+            count = 0
+            for taskData in data:
+                if int(taskData["isDone"]) == True:
+                    count = count + 1
+
+            return count
 
     def remove_task(self, id: int): 
         """
@@ -215,7 +282,8 @@ class TaskHandler:
         """
         erase entire database
         """
-        open(tasksFilePath, 'w').close()
+        with open(tasksFilePath, 'w') as f:
+            f.write("[]")
 
     def task_print_format(self, taskData):
         """
@@ -228,13 +296,5 @@ class TaskHandler:
 
         return "{} [{}] {}".format(taskData["id"], status, taskData["taskText"])
 
-task = Task(1, "wow")
-task1 = Task(2, "wow")
-th = TaskHandler()
-th.add_task(task)
-th.add_task(task1)
-# th.read_tasks()
-# th.remove_task(2)
-# th.reset_database()
 tv = TaskViewer()
 tv.run()

@@ -1,9 +1,6 @@
-- id: 5
-  isDone: false
-  taskText: nice butt
 - id: 1
   isDone: false
-  taskText: wow
+  taskText: play wow
 - id: 2
   isDone: false
-  taskText: wow
+  taskText: listen to aot
