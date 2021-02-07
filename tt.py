@@ -8,6 +8,7 @@ import os
 from datetime import date, datetime
 from progress.bar import ChargingBar
 # User Imports
+from ww import WeightViewer
 
 """
 TODO :
@@ -36,6 +37,10 @@ class TaskViewer:
         mostRecentUpdateDate = datetime.strptime(mostRecentUpdateDateStr, "%d/%m/%Y").date()
 
         if mostRecentUpdateDate < today:
+            # add weight
+            wv = WeightViewer()
+            wv.run()
+
             # new day == reset database
             th.reset_database()
 
