@@ -101,6 +101,11 @@ class TaskViewer:
 
     def show(self, showFlag):
         if showFlag:
+            today = date.today()
+            dt = today.strftime("%d/%m/%Y")
+            print("Task Table: {}".format(dt))
+            print("----------------------")
+
             th = TaskHandler()
             tasksData = th.read_tasks()
 
